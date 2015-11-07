@@ -124,6 +124,6 @@ function startMpv(url, display) {
   });
 
   mpv.on('error', function(err) {
-    log(err.message);
+    log(err.message, err);
   });
 }
