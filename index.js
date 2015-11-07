@@ -97,11 +97,12 @@ function startMpv(url, display) {
   ]
 
   log('command:', command, args.join(' '));
+  log('DISPLAY:', display);
 
   mpv = childProcess.spawn(command, args, {
-    env: {
-      DISPLAY: display
-    }
+    // env: {
+    //   DISPLAY: display
+    // }
   });
   mpv.stdin.setEncoding('utf-8');
   log('starting mpv instance...');

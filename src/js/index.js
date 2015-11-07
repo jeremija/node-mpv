@@ -9,6 +9,7 @@ if (!$url.val()) {
 
 
 $('form#main').on('submit', function() {
+  console.log('submitting...');
   var url = $('form#main input#url').val();
   var display = $('form#main input[name="display"]').val();
   console.log('sending url', url);
@@ -18,19 +19,19 @@ $('form#main').on('submit', function() {
 });
 
 function sendCommand(command) {
+  console.log('sending command', command);
   socket.emit(command);
   return false;
 }
 
 $('form#main #stop').on('click', sendCommand.bind(null, 'stop'));
 $('form#main #pause').on('click', sendCommand.bind(null, 'pause'));
-$('form#main #next').on('next', sendCommand.bind(null, 'next'));
+$('form#main #next').on('click', sendCommand.bind(null, 'next'));
 
 var $status = $('div#status');
 var $urls = $('div#urls');
 
 function updateStatus(isError, status) {
-  console.log(isError, status);
   var $msg = $('<p>')
     .attr('class', isError ? 'err' : '')
     .text(status);
