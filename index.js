@@ -88,12 +88,17 @@ function ab2str(buf) {
 function startMpv(url, display) {
   sendCommand('stop', true);
 
-  mpv = childProcess.spawn('mpv', [
+  var command = 'mpv';
+  var args = [
     '--input-unix-socket',
     mpvSocket,
     '--quiet',
     url
-  ], {
+  ]
+
+  log('command:', command, args.join(' '));
+
+  mpv = childProcess.spawn(command, args, {
     env: {
       DISPLAY: display
     }

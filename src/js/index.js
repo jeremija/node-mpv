@@ -59,6 +59,6 @@ socket.on('url-history', function(url) {
   $urls.prepend($a);
   var $children = $urls.find('a');
   if ($children.length > 5) {
-    $urls.last().remove();
+    $children.last().remove();
   }
 });
