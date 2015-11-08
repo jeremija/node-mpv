@@ -33,27 +33,45 @@ function log() {
 var COMMANDS = {
   'stop': {'command': ['quit']},
   'pause': {'command': ['cycle', 'pause']},
-  'next': {'command': ['playlist_next']}
+  'next': {'command': ['playlist_next']},
+  'volume-up': {"command": ['add', 'volume', 5]},
+  'volume-down': {"command": ['add', 'volume', -5]},
+  'get-title': {"command": ["get_property", "media-title"]}
 }
 
-function sendCommand(command, silent) {
+function sendCommand(command, callback) {
   command = COMMANDS[command];
   if (!command) {
     log('unknown command:', command);
     return;
   }
   command = JSON.stringify(command) + '\n';
-  var client = net.createConnection(mpvSocket, function() {
-    client.write(command, 'utf-8', function(err) {
-      if (err) {
-        log('error sending command to mpv', err.message);
+  var client = net.createConnection(mpvSocket);
+
+  log('sending mpv command:', command);
+  client.write(command, 'utf-8');
+
+  client.on('data', function(data) {
+    data = ab2str(data);
+    client.end();
+    if (!data) return;
+    data.split('\n').forEach(function(item) {
+      if (!item) return;
+      log('mpv event:', item);
+      item = JSON.parse(item);
+      if (item.error != 'success') {
+        if (callback) callback(new Error(item.error));
+        return;
       }
-      client.end();
+      log('item.data', item.data);
+      if (callback && item.data) callback(undefined, item.data);
     });
   });
 
   client.on('error', function(err) {
-      if (!silent) log(err.message);
+    log(err.message);
+    client.end();
+    if (callback) callback(err);
   });
 }
 
@@ -64,10 +82,10 @@ http.listen(process.env.PORT || 3000, function() {
 
 io.on('connection', function(socket) {
   socket.on('url', function(url) {
-    log('url set to:', url.url);
+    log('url set to:', url);
     try {
-      startMpv(url.url, url.display);
-      io.emit('url-history', url.url);
+      startMpv(url);
+      io.emit('url-history', url);
       urlHistory.splice(0, urlHistory.length > 5 ? 1 : 0, url);
 
       log('started mpv');
@@ -76,17 +94,17 @@ io.on('connection', function(socket) {
     }
   });
 
-  socket.on('stop', sendCommand.bind(null, 'stop'));
-  socket.on('pause', sendCommand.bind(null, 'pause'));
-  socket.on('next', sendCommand.bind(null, 'next'));
+  Object.keys(COMMANDS).forEach(function(command) {
+    socket.on(command, sendCommand.bind(null, command));
+  });
 });
 
 function ab2str(buf) {
   return String.fromCharCode.apply(null, new Uint16Array(buf));
 }
 
-function startMpv(url, display) {
-  sendCommand('stop', true);
+function startMpv(url) {
+  sendCommand('stop');
 
   var command = 'mpv';
   var args = [
@@ -97,18 +115,25 @@ function startMpv(url, display) {
   ]
 
   log('command:', command, args.join(' '));
-  log('DISPLAY:', display);
 
   mpv = childProcess.spawn(command, args, {
-    // env: {
-    //   DISPLAY: display
-    // }
+    env: {
+      DISPLAY: process.env.DISPLAY,
+      XAUTHORITY: process.env.XAUTHORITY
+    }
   });
   mpv.stdin.setEncoding('utf-8');
   log('starting mpv instance...');
 
   mpv.stdout.on('data', function(data) {
     var data = ab2str(data);
+    if (data.indexOf('(+) Audio') >= 0) {
+      sendCommand('get-title', function(err, title) {
+        if (err) return;
+        log('title', title);
+        io.emit('title', title);
+      });
+    }
     process.stdout.write(data);
     io.emit('status', data);
   });

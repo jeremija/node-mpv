@@ -11,25 +11,21 @@ if (!$url.val()) {
 $('form#main').on('submit', function() {
   console.log('submitting...');
   var url = $('form#main input#url').val();
-  var display = $('form#main input[name="display"]').val();
   console.log('sending url', url);
-  socket.emit('url', {url: url, display: display});
+  socket.emit('url', url);
   localStorage.setItem('url', url);
   return false;
 });
 
-function sendCommand(command) {
-  console.log('sending command', command);
+$('form#main button').on('click', function() {
+  var command = $(this).attr('id');
   socket.emit(command);
   return false;
-}
-
-$('form#main #stop').on('click', sendCommand.bind(null, 'stop'));
-$('form#main #pause').on('click', sendCommand.bind(null, 'pause'));
-$('form#main #next').on('click', sendCommand.bind(null, 'next'));
+});
 
 var $status = $('div#status');
 var $urls = $('div#urls');
+var $title = $('#title');
 
 function updateStatus(isError, status) {
   var $msg = $('<p>')
@@ -63,3 +59,4 @@ socket.on('url-history', function(url) {
     $children.last().remove();
   }
 });
+socket.on('title', $title.text.bind($title));
