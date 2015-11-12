@@ -7,7 +7,7 @@ html
     * {
       box-sizing: border-box;
     }
-    html, body {
+    body {
       height: 100%;
     }
     body {
@@ -34,6 +34,28 @@ html
       background: #666;
     }
 
+    form .search-results a {
+      color: white;
+      display: block;
+      font-weight: bold;
+      text-decoration: none;
+    }
+
+    form .search-results a img {
+      width: 50px;
+      height: 50px;
+    }
+
+    form .search-results a span {
+      margin-left: 1em;
+      line-height: 50px;
+      vertical-align: bottom;
+    }
+
+    form .search-results a:visited {
+      color: white;
+    }
+
     form input,
     form button {
       background-color: #444;
@@ -44,11 +66,12 @@ html
     }
 
     div.controls {
-      margin: 1em 0;
+      margin: 0 0 1em;
       text-align: center;
     }
     div.controls input,
     div.controls button {
+      font-size: 0.6em;
       margin-right: 1em;
       text-align: center;
       width: 60px;
@@ -76,7 +99,7 @@ html
     }
 
     div.box {
-      padding: 1em;
+       padding: 1em;
     }
 
     div.box .row.header {
@@ -104,8 +127,9 @@ body
   div.box
     div.row.header
       form(id='main')
-        input(id='url', value='#{url}', type='text')
-        br
+        div.search
+          input(id='url', value='#{url}', type='text')
+          div.search-results
         div.controls
           input(type='submit', value='GO')
           button(id='stop') STOP

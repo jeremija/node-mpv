@@ -5,9 +5,12 @@ function init(youtube) {
 
     function search(title) {
         return new Promise((resolve, reject) => {
-            youtube.search(title, 10, (err, result) => {
-                if (err) reject(err);
-                else resolve(result);
+            youtube.search(title, 5, (err, result) => {
+                if (err) {
+                  reject(err);
+                  return;
+                }
+                resolve(result.items);
             });
         });
     }
