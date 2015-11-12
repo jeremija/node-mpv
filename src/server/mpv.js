@@ -6,9 +6,7 @@ let Promise = require('bluebird');
 function BLANK() {}
 
 function init(mpvBinary, mpvSocketPath) {
-  let callback;
-  let mpv;
-  let mpvSocket;
+  let callback, mpv, mpvSocket;
   function log() {
     console.log.apply(console, arguments);
   }
@@ -42,7 +40,7 @@ function init(mpvBinary, mpvSocketPath) {
       }
       try {
         mpvSocket.addNextListener(resolve).write(command);
-      } catch(err) {
+      } catch (err) {
         mpvSocket.clearNextListeners();
         reject(err);
       }
@@ -67,13 +65,11 @@ function init(mpvBinary, mpvSocketPath) {
 
     // mpv.stdin.setEncoding('utf-8');
 
-    function onDataConnectToSocket(data) {
+    mpv.stdout.once('data', data => {
       if (mpvSocket) mpvSocket.close();
       mpvSocket = mpvSocketConfig.init(mpvSocketPath)
         .connect(callback, false);
-    }
-
-    mpv.stdout.once('data', onDataConnectToSocket);
+    });
 
     mpv.on('close', function(code) {
       log('mpv exited with code ' + code);

@@ -20,14 +20,14 @@ var COMMANDS = {
 function init(socketPath) {
   let client;
   let nextListeners = [];
-  let retryErrorHandler;
   let timeout;
   /**
    * Connect to the MPV socket
    * @param callback Function execute when an event or error occurs
    * @param keepTrying Boolean to reconnect or not
+   * @param retryInterval Number amount of ms to wait before retrying
    */
-  function connect(callback, keepTrying) {
+  function connect(callback, keepTrying, retryInterval) {
     if (!callback) throw new TypeError('callback must be defined');
     close();
     client = net.createConnection(socketPath);
@@ -45,12 +45,11 @@ function init(socketPath) {
         callback(undefined, item);
       });
     });
-    client.on('error', err => callback(err));
-    if (keepTrying) {
-      if (retryErrorHandler) client.removeListener('error', retryErrorHandler);
-      retryErrorHandler = createRetryErrorHandler(callback);
-      client.on('error', retryErrorHandler);
-    }
+    client.on('error', err => {
+      callback(err);
+      // if keep trying and close was not called, keep trying to connect
+      if (keepTrying && client) connect(callback, true, retryInterval);
+    });
     return self;
   }
   /**
@@ -64,17 +63,6 @@ function init(socketPath) {
     commandJson = JSON.stringify(commandJson) + '\n';
     client.write(commandJson, 'utf-8');
     return self;
-  }
-  /**
-   * Creates a handler which will be used to retry connection on error
-   * @private
-   * @param callback Function
-   */
-  function createRetryErrorHandler(callback) {
-    return function() {
-      close();
-      timeout = setTimeout(() => connect(callback, true), RETRY_INTERVAL);
-    };
   }
   /**
    * Adds a listener which will be executed only once
@@ -93,8 +81,9 @@ function init(socketPath) {
   function close() {
     clearTimeout(timeout);
     if (!client) return;
-    if (retryErrorHandler) client.removeListener('error', retryErrorHandler);
+    client.removeAllListeners();
     client.end();
+    client.destroy();
     client = undefined;
   }
   let self = {connect, write, addNextListener, clearNextListeners, close};

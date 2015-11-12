@@ -60,9 +60,7 @@ io.on('connection', function(socket) {
     if (urlHistory.length > 5) urlHistory.pop();
   });
 
-  socket.on('command', function(command) {
-    mpv.sendCommand(command).error(log);
-  });
+  socket.on('command', command => mpv.sendCommand(command).catch(log));
 });
 
 http.listen(process.env.PORT || 3000, function() {

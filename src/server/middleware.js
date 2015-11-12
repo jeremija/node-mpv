@@ -1,4 +1,5 @@
-var express = require('express');
+'use strict';
+let express = require('express');
 
 function init(youtube) {
     var router = express.Router();
@@ -6,8 +7,8 @@ function init(youtube) {
     router.get('/youtube/search', function(req, res) {
         youtube.search(req.query.value).then(results => {
             res.json(results);
-        }).error(err => {
-            res.status(500).err(err.message);
+        }).catch(err => {
+            res.status(500).send({error: err.message});
         });
     });
 
