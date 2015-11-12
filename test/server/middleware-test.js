@@ -1,8 +1,8 @@
 'use strict';
 let express = require('express');
-let middleware = require('app/server/middleware.js');
+let middleware = require('app/src/server/middleware.js');
 let request = require('supertest');
-let youtubeConfig = require('app/server/youtube.js');
+let youtubeConfig = require('app/src/server/youtube.js');
 
 describe('test/server/middleware-test.js', () => {
   let app;

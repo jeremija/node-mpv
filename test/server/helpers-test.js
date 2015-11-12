@@ -1,5 +1,5 @@
 'use strict';
-let helpers = require('app/server/helpers.js');
+let helpers = require('app/src/server/helpers.js');
 let expect = require('chai').expect;
 
 function str2ab(str) {
