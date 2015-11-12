@@ -1,16 +1,41 @@
-var app = require('express')();
-var browserify = require('browserify-middleware');
-var childProcess = require('child_process');
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
-var net = require('net');
+'use strict';
+let app = require('express')();
+let browserify = require('browserify-middleware');
+let config = require('./config.js');
+let http = require('http').Server(app);
+let io = require('socket.io')(http);
 
-var mpv = undefined;
-var mpvSocket = '/tmp/mpvsocket';
-var urlHistory = [];
+let Youtube = require('./src/server/youtube.js');
+let YoutubeApi = require('youtube-node');
+let youtubeApi = new YoutubeApi();
+youtubeApi.setKey(config.youtubeKey);
+let youtube = new Youtube(youtubeApi);
 
-app.set('views', './src/views')
-app.set('view engine', 'jade')
+function log() {
+  let args = Array.prototype.slice.call(arguments);
+  io.emit('status', args.join(' '));
+  console.log.apply(console, args);
+}
+
+let mpvConfig = require('./src/server/mpv.js');
+let mpv = mpvConfig.init(config.mpvBinary, config.mpvSocket)
+.onEvent((err, event) => {
+  if (err) {
+    log('event error:', err);
+    return;
+  }
+  log('event: ', JSON.stringify(event));
+  if (event.event === 'tracks-changed') {
+    mpv.sendCommand('get-title').then(event => {
+      console.log('title event: ', event);
+      io.emit('title', event.data);
+    });
+  }
+});
+let urlHistory = [];
+
+app.set('views', './src/views');
+app.set('view engine', 'jade');
 
 app.get('/', function(req, res) {
   res.render('index', {
@@ -18,138 +43,29 @@ app.get('/', function(req, res) {
     urlHistory: urlHistory
   });
   if (req.query.url) {
-    startMpv(req.query.url);
+    mpv.start(req.query.url);
   }
 });
 
 app.use('/js', browserify('./src/js'));
-
-function log() {
-    var args = Array.prototype.slice.call(arguments);
-    io.emit('status', args.join(' '));
-    console.log.apply(console, args);
-}
-
-var COMMANDS = {
-  'stop': {'command': ['quit']},
-  'pause': {'command': ['cycle', 'pause']},
-  'next': {'command': ['playlist_next']},
-  'volume-up': {"command": ['add', 'volume', 5]},
-  'volume-down': {"command": ['add', 'volume', -5]},
-  'get-title': {"command": ["get_property", "media-title"]}
-}
-
-function sendCommand(command, callback) {
-  command = COMMANDS[command];
-  if (!command) {
-    log('unknown command:', command);
-    return;
-  }
-  command = JSON.stringify(command) + '\n';
-  var client = net.createConnection(mpvSocket);
-
-  log('sending mpv command:', command);
-  client.write(command, 'utf-8');
-
-  client.on('data', function(data) {
-    data = ab2str(data);
-    client.end();
-    if (!data) return;
-    data.split('\n').forEach(function(item) {
-      if (!item) return;
-      log('mpv event:', item);
-      item = JSON.parse(item);
-      if (item.error != 'success') {
-        if (callback) callback(new Error(item.error));
-        return;
-      }
-      log('item.data', item.data);
-      if (callback && item.data) callback(undefined, item.data);
-    });
-  });
-
-  client.on('error', function(err) {
-    log(err.message);
-    client.end();
-    if (callback) callback(err);
-  });
-}
-
-http.listen(process.env.PORT || 3000, function() {
-  console.log('listening on http://*:3000');
-  console.log('you can use http://localhost:3000')
-});
+app.use('/api', require('./src/server/middleware.js')(youtube));
 
 io.on('connection', function(socket) {
   socket.on('url', function(url) {
     log('url set to:', url);
-    try {
-      startMpv(url);
-      io.emit('url-history', url);
-      urlHistory.splice(0, urlHistory.length > 5 ? 1 : 0, url);
 
-      log('started mpv');
-    } catch (err) {
-      log('caught error', err.message);
-    }
+    mpv.start(url);
+    io.emit('url-history', url);
+    urlHistory.splice(0, 0, url);
+    if (urlHistory.length > 5) urlHistory.pop();
   });
 
-  Object.keys(COMMANDS).forEach(function(command) {
-    socket.on(command, sendCommand.bind(null, command));
+  socket.on('command', function(command) {
+    mpv.sendCommand(command).error(log);
   });
 });
 
-function ab2str(buf) {
-  return String.fromCharCode.apply(null, new Uint16Array(buf));
-}
-
-function startMpv(url) {
-  sendCommand('stop');
-
-  var command = 'mpv';
-  var args = [
-    '--input-unix-socket',
-    mpvSocket,
-    '--quiet',
-    url
-  ]
-
-  log('command:', command, args.join(' '));
-
-  mpv = childProcess.spawn(command, args, {
-    env: {
-      DISPLAY: process.env.DISPLAY,
-      XAUTHORITY: process.env.XAUTHORITY
-    }
-  });
-  mpv.stdin.setEncoding('utf-8');
-  log('starting mpv instance...');
-
-  mpv.stdout.on('data', function(data) {
-    var data = ab2str(data);
-    if (data.indexOf('(+) Audio') >= 0) {
-      sendCommand('get-title', function(err, title) {
-        if (err) return;
-        log('title', title);
-        io.emit('title', title);
-      });
-    }
-    process.stdout.write(data);
-    io.emit('status', data);
-  });
-
-  mpv.stderr.on('data', function(data) {
-    data = ab2str(data);
-    process.stdout.write(data);
-    io.emit('status-err', data);
-  });
-
-  mpv.on('close', function(code) {
-    log('mpv exited with code ' + code);
-    mpv = undefined;
-  });
-
-  mpv.on('error', function(err) {
-    log(err.message, err);
-  });
-}
+http.listen(process.env.PORT || 3000, function() {
+  console.log('listening on http://*:3000');
+  console.log('you can use http://localhost:3000');
+});

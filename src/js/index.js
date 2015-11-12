@@ -19,7 +19,7 @@ $('form#main').on('submit', function() {
 
 $('form#main button').on('click', function() {
   var command = $(this).attr('id');
-  socket.emit(command);
+  socket.emit('command', command);
   return false;
 });
 
@@ -32,7 +32,7 @@ function updateStatus(isError, status) {
     .attr('class', isError ? 'err' : '')
     .text(status);
   $status.append($msg);
-  var statusEl = $status[0]
+  var statusEl = $status[0];
   statusEl.scrollTop = statusEl.scrollHeight - $status.height();
 }
 
