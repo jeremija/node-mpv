@@ -57,7 +57,11 @@ $url.on('focus', function(event) {
   $url[0].select();
 });
 
-$('button#status-show').on('click', () => $status.toggle());
+$('button#status-show').on('click', () => {
+  $status.toggle();
+  var statusEl = $status[0];
+  statusEl.scrollTop = statusEl.scrollHeight - $status.height();
+});
 
 var youtubeIcons = {
   'youtube#video': 'icon-film',
