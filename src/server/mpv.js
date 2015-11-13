@@ -33,6 +33,7 @@ function init(mpvBinary, mpvSocketPath) {
   }
 
   function sendCommand(command) {
+    console.log('sending command', command);
     return new Promise(function(resolve, reject) {
       if (!mpvSocket) {
         reject(new Error('No mpvSocket available'));
@@ -83,9 +84,10 @@ function init(mpvBinary, mpvSocketPath) {
     let command = mpvBinary;
     let args = [
       '--input-unix-socket',
-      mpvSocketPath,
+      mpvSocketPath || '/tmp/mpvsocket',
       '--quiet',
       '--idle',
+      './blank.wav'
     ];
 
     log('starting mpv instance...');

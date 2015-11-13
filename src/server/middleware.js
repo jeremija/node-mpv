@@ -2,7 +2,7 @@
 let express = require('express');
 
 function sendError(res, statusCode, err) {
-  res.status(statusCode).json({error: err.message});
+  res.status(statusCode).json({error: err.message || err.error});
 }
 
 function init(youtube, mpv) {
@@ -14,7 +14,8 @@ function init(youtube, mpv) {
       .catch(err => sendError(res, 500, err));
   });
 
-  router.post('/mpv/load', (req, res) => {
+  router.get('/mpv/play', (req, res) => {
+    console.log('/mpv/play req.query', req.query);
     mpv.play(req.query.url)
       .then(r => res.json(r))
       .catch(e => sendError(res, 400, e));
