@@ -38,7 +38,7 @@ function init(socketPath) {
       data.split('\n').forEach(item => {
         if (!item) return;
         item = JSON.parse(item);
-        if (item.hasOwnProperty('data') && nextListeners.length) {
+        if (!item.hasOwnProperty('event') && nextListeners.length) {
           nextListeners.forEach(listener => listener(item));
           clearNextListeners();
         }
