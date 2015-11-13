@@ -1,0 +1,123 @@
+@import "fonts.less";
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  height: 100%;
+  background-color: #333;
+  color: #fff;
+  margin: 0;
+  font-family: sans-serif;
+}
+
+h1 {
+  margin: 1em 0 0px;
+  padding: 0;
+  font-size: 16px;
+  text-align: center;
+}
+
+form#main {
+  #url {
+    text-decoration: underline;
+    font-weight: bold;
+    padding: 1em;
+    width: 100%;
+  }
+
+  #url::selection,
+  #url::-moz-selection {
+    background: #666;
+  }
+
+  .search-results {
+    a {
+      color: white;
+      display: block;
+      font-weight: bold;
+      text-decoration: none;
+
+      img {
+        width: 50px;
+        height: 50px;
+      }
+
+      span {
+        margin-left: 1em;
+        line-height: 50px;
+        vertical-align: bottom;
+      }
+    }
+
+    a:visited {
+      color: white;
+    }
+  }
+
+  input,
+  button {
+    background-color: #444;
+    color: #fff;
+    border: none;
+    border-radius: 5px 5px;
+    box-shadow: 0px 0px 5px #222;
+  }
+}
+
+div.controls {
+  margin: 1em 0;
+  text-align: center;
+
+  input,
+  button {
+    margin-right: 1em;
+    text-align: center;
+    width: 60px;
+    height: 40px;
+  }
+}
+
+div#status {
+  overflow: auto;
+
+  p {
+    color: #ccc;
+    margin: 0;
+    font-size: 0.8em;
+  }
+
+  p.err {
+    color: #fcc;
+    color: #660000;
+  }
+}
+
+div.box {
+  display: flex;
+  flex-flow: column;
+  height: 100%;
+  padding: 1em;
+
+  .row.header {
+    flex: 0 1 auto;
+  }
+
+  .row.urls {
+    flex: 0 1 auto;
+
+    a {
+      color: #ccc;
+      display: block;
+      font-weight: bold;
+      text-decoration: underline;
+    }
+  }
+
+  .row.content {
+    flex: 1 1 auto;
+  }
+
+}
+

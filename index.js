@@ -1,15 +1,21 @@
 'use strict';
-let app = require('express')();
+let express = require('express');
+let app = express();
 let browserify = require('browserify-middleware');
+let less = require('less-middleware');
 let config = require('./config.js');
 let http = require('http').Server(app);
 let io = require('socket.io')(http);
+let path = require('path');
+let os = require('os');
 
 let Youtube = require('./src/server/youtube.js');
 let YoutubeApi = require('youtube-node');
 let youtubeApi = new YoutubeApi();
 youtubeApi.setKey(config.youtubeKey);
 let youtube = new Youtube(youtubeApi);
+
+let tempDir = path.join(os.tmpDir(), 'node-mpv-css-cache');
 
 function log() {
   let args = Array.prototype.slice.call(arguments);
@@ -48,6 +54,9 @@ app.get('/', function(req, res) {
 });
 
 app.use('/js', browserify('./src/js'));
+app.use('/less', less('./src/less', { dest: tempDir}));
+app.use('/less', express.static(tempDir));
+app.use('/less/fonts', express.static('./src/less/fonts'));
 app.use('/api', require('./src/server/middleware.js')(youtube));
 
 io.on('connection', function(socket) {

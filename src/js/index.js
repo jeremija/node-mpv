@@ -18,7 +18,7 @@ $('form#main').on('submit', function() {
   return false;
 });
 
-$('form#main button').on('click', function() {
+$('form#main button').not('button[type=submit]').on('click', function() {
   var command = $(this).attr('id');
   socket.emit('command', command);
   return false;
