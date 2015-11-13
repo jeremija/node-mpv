@@ -16,6 +16,7 @@ youtubeApi.setKey(config.youtubeKey);
 let youtube = new Youtube(youtubeApi);
 
 let tempDir = path.join(os.tmpDir(), 'node-mpv-css-cache');
+let lastTitle = '(no title)';
 
 function log() {
   let args = Array.prototype.slice.call(arguments);
@@ -33,20 +34,19 @@ let mpv = mpvConfig.init(config.mpvBinary, config.mpvSocket)
   log('event: ', JSON.stringify(event));
   if (event.event === 'tracks-changed') {
     mpv.sendCommand('get-title').then(event => {
+      lastTitle = event.data;
       console.log('title event: ', event);
       io.emit('title', event.data);
     });
   }
 });
-let urlHistory = [];
-
 app.set('views', './src/views');
 app.set('view engine', 'jade');
 
 app.get('/', function(req, res) {
   res.render('index', {
     url: req.query.url || '',
-    urlHistory: urlHistory
+    title: lastTitle
   });
   if (req.query.url) {
     mpv.start(req.query.url);
@@ -64,9 +64,6 @@ io.on('connection', function(socket) {
     log('url set to:', url);
 
     mpv.start(url);
-    io.emit('url-history', url);
-    urlHistory.splice(0, 0, url);
-    if (urlHistory.length > 5) urlHistory.pop();
   });
 
   socket.on('command', command => mpv.sendCommand(command).catch(log));

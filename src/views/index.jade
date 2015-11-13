@@ -1,12 +1,12 @@
 doctype html
 html
   head
-    title mpvjs
+    title #{title} - mpvjs
     meta(name="viewport", content="width=device-width, initial-scale=1")
   link(rel="stylesheet" type="text/css" href="less/main.css")
 
 body
-  h1#title (no title)
+  h1#title #{title}
 
   div.box
     div.row.header
@@ -21,10 +21,6 @@ body
           button.icon-next2(id='next')
           button.icon-volume-increase(id='volume-up')
           button.icon-volume-decrease(id='volume-down')
-
-    div.row.urls(id='urls')
-      each url in urlHistory
-        a(href='#{url}') #{url}
 
     div.row.content(id='status')
 

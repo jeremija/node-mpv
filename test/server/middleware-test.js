@@ -12,7 +12,7 @@ describe('test/server/middleware-test.js', () => {
     app = express();
     let youtubeApi = {
       search: function(title, count, callback) {
-        if (title === 'my title' && count === 5) callback(undefined, result);
+        if (title === 'my title' && count === 10) callback(undefined, result);
         else callback(err);
       }
     };

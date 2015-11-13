@@ -5,16 +5,15 @@ var _ = require('underscore');
 var $url = $('form#main #url');
 var $results = $('form#main .search-results');
 
-if (!$url.val()) {
-  $url.val(localStorage.getItem('url') || '');
+function play(url) {
+  console.log('playing url', url);
+  socket.emit('url', url);
+  $results.empty();
 }
 
 $('form#main').on('submit', function() {
-  console.log('submitting...');
   var url = $('form#main input#url').val();
-  console.log('sending url', url);
-  socket.emit('url', url);
-  localStorage.setItem('url', url);
+  play(url);
   return false;
 });
 
@@ -28,11 +27,23 @@ $url.on('focus', function(event) {
   $url[0].select();
 });
 
+function createIcon(item) {
+  var $span = $('<span>');
+  var kind = item.id.kind;
+  var icon = kind === 'youtube#video' ?
+    'icon-film' : kind === 'youtube#playlist' ?
+    'icon-file-video' : kind === 'youtube#channel' ?
+    'icon-tv' : '';
+  $span.addClass(icon);
+  return $span;
+}
+
 function createLink(item) {
   var $a = $('<a>');
   var $img = $('<img>').attr('src', item.snippet.thumbnails.default.url);
+  var $icon = createIcon(item);
   var $span = $('<span>').text(item.snippet.title);
-  $a.append($img).append($span);
+  $a.append($img).append($icon).append($span);
   if (item.id.kind === 'youtube#video') {
     $a.attr('href', 'https://youtube.com/watch?v=' + item.id.videoId);
   } else if (item.id.kind === 'youtube#playlist') {
@@ -42,14 +53,13 @@ function createLink(item) {
   }
   $a.on('click', () => {
     var url = $a.attr('href');
-    socket.emit('url', url);
-    localStorage.setItem('url', url);
+    play(url);
     return false;
   });
   return $a;
 }
 
-$url.on('input', _.throttle(function() {
+$url.on('input', _.debounce(function() {
   var url = $url.val();
   if (!url) {
     $results.empty();
@@ -62,10 +72,9 @@ $url.on('input', _.throttle(function() {
     $results.empty();
     data.map(item => $results.append(createLink(item)));
   });
-}, 500));
+}, 300));
 
 var $status = $('div#status');
-var $urls = $('div#urls');
 var $title = $('#title');
 
 function updateStatus(isError, status) {
@@ -77,27 +86,9 @@ function updateStatus(isError, status) {
   statusEl.scrollTop = statusEl.scrollHeight - $status.height();
 }
 
-function createUrlCallback($selector) {
-  $selector.each(function(index, element) {
-    $(element).on('click', function() {
-      $url.val(element.href);
-      $('form#main').submit();
-      return false;
-    });
-  });
-}
-
-createUrlCallback($urls.find('a'));
-
 socket.on('status', updateStatus.bind(null, false));
 socket.on('status-err', updateStatus.bind(null, true));
-socket.on('url-history', function(url) {
-  var $a = $('<a>').attr('href', url).text(url);
-  createUrlCallback($a);
-  $urls.prepend($a);
-  var $children = $urls.find('a');
-  if ($children.length > 5) {
-    $children.last().remove();
-  }
+socket.on('title', title => {
+  $title.text(title);
+  document.title = '▶ ' + title + ' - node-mpv';
 });
-socket.on('title', $title.text.bind($title));
