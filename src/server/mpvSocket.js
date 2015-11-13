@@ -2,10 +2,8 @@
 let net = require('net');
 let helpers = require('./helpers.js');
 
-let RETRY_INTERVAL = 1000;
-
 var COMMANDS = {
-  'stop': ['quit'],
+  'stop': ['stop'],
   'pause': ['cycle', 'pause'],
   'next': ['playlist_next'],
   'volume-up': ['add', 'volume', 5],
