@@ -8,8 +8,22 @@ body {
   height: 100%;
   background-color: #333;
   color: #fff;
-  margin: 0 0 70px;
+  margin: 0 0 48px;
   font-family: sans-serif;
+}
+
+a {
+  color: white;
+  font-weight: bold;
+  text-decoration: none;
+
+  &:hover {
+    color: #ccc;
+  }
+
+  &:active {
+    color: #aaa;
+  }
 }
 
 h1 {
@@ -17,6 +31,24 @@ h1 {
   padding: 0;
   font-size: 16px;
   text-align: center;
+}
+
+input,
+button {
+  background-color: #444;
+  color: #fff;
+  border: none;
+  border-radius: 5px 5px;
+  box-shadow: 0px 0px 5px #222;
+}
+
+button:hover {
+  background-color: #555;
+}
+
+button:active {
+  background-color: #222;
+  color: #ccc;
 }
 
 form#main {
@@ -44,8 +76,9 @@ form#main {
 
       img {
         float: left;
-        width: 50px;
-        height: 50px;
+        width: 40px;
+        height: 40px;
+        margin: 5px 0;
       }
 
       span {
@@ -72,17 +105,9 @@ form#main {
     }
   }
 
-  input,
-  button {
-    background-color: #444;
-    color: #fff;
-    border: none;
-    border-radius: 5px 5px;
-    box-shadow: 0px 0px 5px #222;
-  }
-
   div.controls {
-    margin: 1em 0;
+    background-color: #222;
+    padding: 5px 0;
     text-align: center;
     position: fixed;
     bottom: 0;
@@ -90,28 +115,26 @@ form#main {
     right: 0;
 
     button {
-      font-size: 2em;
-      margin-right: 1em;
+      font-size: 32px;
+      margin-right: 0.4em;
       text-align: center;
-      width: 50px;
-      height: 50px;
+      width: 48px;
+      height: 48px;
       cursor: pointer;
     }
 
-    button:hover {
-      background-color: #555;
-    }
-
-    button:active {
-      background-color: #222;
-      color: #ccc;
-    }
   }
 }
 
-
 div#status {
   overflow: auto;
+  position: fixed;
+  padding: 0.5em;
+  top: 1em;
+  left: 1em;
+  right: 1em;
+  bottom: 1em;
+  background-color: #222;
 
   p {
     color: #ccc;
@@ -126,14 +149,8 @@ div#status {
 }
 
 div.box {
-  display: flex;
-  flex-flow: column;
   height: 100%;
   padding: 1em;
-
-  .row.header {
-    flex: 0 1 auto;
-  }
 
   .row.urls {
     flex: 0 1 auto;
@@ -146,9 +163,16 @@ div.box {
     }
   }
 
-  .row.content {
-    flex: 1 1 auto;
-  }
-
 }
 
+button#status-show {
+  font-size: 32px;
+  text-align: center;
+  width: 48px;
+  height: 48px;
+  cursor: pointer;
+  position: fixed;
+  z-index: 999;
+  right: 5px;
+  bottom: 5px;
+}

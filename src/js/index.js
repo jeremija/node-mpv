@@ -27,6 +27,8 @@ $url.on('focus', function(event) {
   $url[0].select();
 });
 
+$('button#status-show').on('click', () => $status.toggle());
+
 function createIcon(item) {
   var $span = $('<span>');
   var kind = item.id.kind;

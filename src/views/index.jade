@@ -5,23 +5,25 @@ html
     meta(name="viewport", content="width=device-width, initial-scale=1")
   link(rel="stylesheet" type="text/css" href="less/main.css")
 
-body
-  h1#title #{title}
+  body
+    h1#title #{title}
 
-  div.box
-    div.row.header
-      form(id='main')
-        div.search
-          input(id='url', value='#{url}', type='text')
-          div.search-results
-        div.controls
-          button.icon-play3(type='submit', value='')
-          button.icon-stop2(id='stop')
-          button.icon-pause2(id='pause')
-          button.icon-next2(id='next')
-          button.icon-volume-increase(id='volume-up')
-          button.icon-volume-decrease(id='volume-down')
+    div.box
+      div.row.header
+        form(id='main')
+          div.search
+            input(id='url', value='#{url}', type='text')
+            div.search-results
+          div.controls
+            button.icon-play3(type='submit', value='')
+            button#stop.icon-stop2
+            button#pause.icon-pause2
+            button#next.icon-next2
+            button#volume-up.icon-volume-increase
+            button#volume-down.icon-volume-decrease
 
-    div.row.content(id='status')
+    div.row.content(id='status', style='display: none;')
 
-  script(src='js/index.js')
+    button#status-show.icon-stats-dots
+
+    script(src='js/index.js')
