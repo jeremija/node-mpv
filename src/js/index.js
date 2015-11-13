@@ -5,21 +5,26 @@ var _ = require('underscore');
 var $url = $('form#main #url');
 var $results = $('form#main .search-results');
 
+function sendCommand(command, params) {
+  var url = '/api/mpv' + command;
+  console.log('sending command:', url, params);
+  $.getJSON('/api/mpv/' + command, params, function(data, status) {
+    updateStatus(status !== 200, data);
+  });
+}
+
 function play(url) {
-  console.log('playing url', url);
-  socket.emit('url', url);
+  sendCommand('play', {url: url});
   $results.empty();
 }
 
 $('form#main').on('submit', function() {
-  var url = $('form#main input#url').val();
-  play(url);
   return false;
 });
 
-$('form#main button').not('button[type=submit]').on('click', function() {
+$('form#main button.command').on('click', function() {
   var command = $(this).attr('id');
-  socket.emit('command', command);
+  sendCommand(command);
   return false;
 });
 

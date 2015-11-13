@@ -23,7 +23,7 @@ function init(mpvBinary, mpvSocketPath) {
     mpvSocket = undefined;
   }
 
-  function stop() {
+  function kill() {
     if (mpv) {
       mpv.kill('SIGHUP');
       mpv = undefined;
@@ -47,15 +47,45 @@ function init(mpvBinary, mpvSocketPath) {
     });
   }
 
-  function start(url) {
-    stop();
+  function play(url) {
+    if (!mpv) spawn();
+    return sendCommand(['loadfile', url]);
+  }
+
+  function pause() {
+    if (!mpv) spawn();
+    return sendCommand('pause');
+  }
+
+  function stop() {
+    if (!mpv) spawn();
+    return sendCommand('stop');
+  }
+
+  function next() {
+    if (!mpv) spawn();
+    return sendCommand('next');
+  }
+
+  function volumeUp() {
+    if (!mpv) spawn();
+    return sendCommand('volume-up');
+  }
+
+  function volumeDown() {
+    if (!mpv) spawn();
+    return sendCommand('volume-down');
+  }
+
+  function spawn() {
+    if (mpv) throw new Error('Already spawned!');
 
     let command = mpvBinary;
     let args = [
       '--input-unix-socket',
       mpvSocketPath,
       '--quiet',
-      url
+      '--idle',
     ];
 
     log('starting mpv instance...');
@@ -80,7 +110,18 @@ function init(mpvBinary, mpvSocketPath) {
     return self;
   }
 
-  let self = {start, stop, onEvent, sendCommand};
+  let self = {
+    spawn,
+    kill,
+    onEvent,
+    play,
+    pause,
+    stop,
+    next,
+    volumeUp,
+    volumeDown,
+    sendCommand
+  };
   return self;
 }
 
