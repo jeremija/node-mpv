@@ -23,8 +23,9 @@ function init(mpvBinary, mpvSocketPath) {
     mpvSocket = undefined;
   }
 
-  function stop() {
+  function stop(callback) {
     if (mpv) {
+      if (callback) mpv.on('close', callback);
       mpv.kill('SIGHUP');
       mpv = undefined;
     }
@@ -47,9 +48,7 @@ function init(mpvBinary, mpvSocketPath) {
     });
   }
 
-  function start(url) {
-    stop();
-
+  function _start(url) {
     let command = mpvBinary;
     let args = [
       '--input-unix-socket',
@@ -77,6 +76,12 @@ function init(mpvBinary, mpvSocketPath) {
       stopMpvSocket();
     });
 
+    return self;
+  }
+
+  function start(url) {
+    if (mpv) stop(() => _start(url));
+    else _start(url);
     return self;
   }
 
