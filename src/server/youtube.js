@@ -1,21 +1,21 @@
-'use strict';
-let Promise = require('bluebird');
+'use strict'
+let Promise = require('bluebird')
 
-function init(youtube) {
+function init (youtube) {
 
-  function search(title, results) {
+  function search (title, results) {
     return new Promise((resolve, reject) => {
       youtube.search(title, results || 5, (err, result) => {
         if (err) {
-          reject(err);
-          return;
+          reject(err)
+          return
         }
-        resolve(result.items);
-      });
-    });
+        resolve(result.items)
+      })
+    })
   }
 
-  return {search};
+  return {search}
 }
 
-module.exports = init;
+module.exports = init

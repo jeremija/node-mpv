@@ -1,87 +1,87 @@
-'use strict';
-let childProcess = require('child_process');
-let mpvSocketConfig = require('./mpvSocket.js');
-let Promise = require('bluebird');
+'use strict'
+let childProcess = require('child_process')
+let mpvSocketConfig = require('./mpvSocket.js')
+let Promise = require('bluebird')
 
-function BLANK() {}
+function BLANK () {}
 
-function init(mpvBinary, mpvArgs = [], mpvSocketPath) {
-  let callback, mpv, mpvSocket;
-  function log() {
-    console.log.apply(console, arguments);
+function init (mpvBinary, mpvArgs = [], mpvSocketPath) {
+  let callback, mpv, mpvSocket
+  function log () {
+    console.log.apply(console, arguments)
   }
 
-  function onEvent(p_callback) {
-    if (p_callback) callback = p_callback;
-    else callback = BLANK;
-    return self;
+  function onEvent (_callback) {
+    if (_callback) callback = _callback
+    else callback = BLANK
+    return self
   }
 
-  function stopMpvSocket() {
-    if (!mpvSocket) return;
-    mpvSocket.close();
-    mpvSocket = undefined;
+  function stopMpvSocket () {
+    if (!mpvSocket) return
+    mpvSocket.close()
+    mpvSocket = undefined
   }
 
-  function kill() {
+  function kill () {
     if (mpv) {
-      mpv.kill('SIGHUP');
-      mpv = undefined;
+      mpv.kill('SIGHUP')
+      mpv = undefined
     }
-    stopMpvSocket();
-    return self;
+    stopMpvSocket()
+    return self
   }
 
-  function sendCommand(command) {
-    console.log('sending command', command);
-    return new Promise(function(resolve, reject) {
+  function sendCommand (command) {
+    console.log('sending command', command)
+    return new Promise(function (resolve, reject) {
       if (!mpvSocket) {
-        reject(new Error('No mpvSocket available'));
-        return;
+        reject(new Error('No mpvSocket available'))
+        return
       }
       try {
-        mpvSocket.addNextListener(resolve).write(command);
+        mpvSocket.addNextListener(resolve).write(command)
       } catch (err) {
-        mpvSocket.clearNextListeners();
-        reject(err);
+        mpvSocket.clearNextListeners()
+        reject(err)
       }
-    });
+    })
   }
 
-  function play(url) {
-    if (!mpv) spawn();
-    return sendCommand(['loadfile', url]);
+  function play (url) {
+    if (!mpv) spawn()
+    return sendCommand(['loadfile', url])
   }
 
-  function pause() {
-    if (!mpv) spawn();
-    return sendCommand('pause');
+  function pause () {
+    if (!mpv) spawn()
+    return sendCommand('pause')
   }
 
-  function stop() {
-    if (!mpv) spawn();
-    return sendCommand('stop');
+  function stop () {
+    if (!mpv) spawn()
+    return sendCommand('stop')
   }
 
-  function next() {
-    if (!mpv) spawn();
-    return sendCommand('next');
+  function next () {
+    if (!mpv) spawn()
+    return sendCommand('next')
   }
 
-  function volumeUp() {
-    if (!mpv) spawn();
-    return sendCommand('volume-up');
+  function volumeUp () {
+    if (!mpv) spawn()
+    return sendCommand('volume-up')
   }
 
-  function volumeDown() {
-    if (!mpv) spawn();
-    return sendCommand('volume-down');
+  function volumeDown () {
+    if (!mpv) spawn()
+    return sendCommand('volume-down')
   }
 
-  function spawn() {
-    if (mpv) throw new Error('Already spawned!');
+  function spawn () {
+    if (mpv) throw new Error('Already spawned!')
 
-    let command = mpvBinary;
+    let command = mpvBinary
     let args = [
       ...mpvArgs,
       '--input-unix-socket',
@@ -89,28 +89,28 @@ function init(mpvBinary, mpvArgs = [], mpvSocketPath) {
       '--quiet',
       '--idle',
       './blank.wav'
-    ];
+    ]
 
-    log('starting mpv instance...');
-    log('command:', command, args.join(' '));
+    log('starting mpv instance...')
+    log('command:', command, args.join(' '))
 
-    mpv = childProcess.spawn(command, args, {});
+    mpv = childProcess.spawn(command, args, {})
 
     // mpv.stdin.setEncoding('utf-8');
 
     mpv.stdout.once('data', data => {
-      if (mpvSocket) mpvSocket.close();
+      if (mpvSocket) mpvSocket.close()
       mpvSocket = mpvSocketConfig.init(mpvSocketPath)
-        .connect(callback, false);
-    });
+      .connect(callback, false)
+    })
 
-    mpv.on('close', function(code) {
-      log('mpv exited with code ' + code);
-      mpv = undefined;
-      stopMpvSocket();
-    });
+    mpv.on('close', function (code) {
+      log('mpv exited with code ' + code)
+      mpv = undefined
+      stopMpvSocket()
+    })
 
-    return self;
+    return self
   }
 
   let self = {
@@ -124,8 +124,8 @@ function init(mpvBinary, mpvArgs = [], mpvSocketPath) {
     volumeUp,
     volumeDown,
     sendCommand
-  };
-  return self;
+  }
+  return self
 }
 
-module.exports = {init};
+module.exports = {init}

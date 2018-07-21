@@ -1,5 +1,5 @@
 {
-  "extends": ["standard", "standard-react"]
+  "extends": ["standard", "standard-react"],
   "rules": {
     "indent": ["error", 2, { "MemberExpression": 0, "SwitchCase": 1, "flatTernaryExpressions": true }],
     "import/first": 0,
