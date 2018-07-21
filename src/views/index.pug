@@ -1,26 +1,26 @@
 doctype html
 html
   head
-    title #{title} - mpvjs
-    meta(name="viewport", content="width=device-width, initial-scale=1")
+    title= title + ' - mpvjs'
+    meta(name="viewport" content="width=device-width, initial-scale=1")
   link(rel="stylesheet" type="text/css" href="less/main.css")
 
   body
-    h1#title #{title}
+    h1#title= title
 
     div.box
       div.row.header
         form(id='main')
-          div.search
-            input(id='url', value='#{url}', type='text')
+          div.search(placeholder='Search')
+            input(id='url' value=url type='text')
             div.search-results
           div.controls
-            button.icon-play3(type='submit', value='')
-            button#stop.icon-stop2
-            button#pause.icon-pause2
-            button#next.icon-next2
-            button#volume-up.icon-volume-increase
-            button#volume-down.icon-volume-decrease
+            // button.icon-play3(type='submit', value='')
+            button#stop.command.icon-stop2
+            button#pause.command.icon-pause2
+            button#next.command.icon-next2
+            button#volume-up.command.icon-volume-increase
+            button#volume-down.command.icon-volume-decrease
 
     div.row.content(id='status', style='display: none;')
 

@@ -2,15 +2,13 @@
 let net = require('net');
 let helpers = require('./helpers.js');
 
-let RETRY_INTERVAL = 1000;
-
 var COMMANDS = {
-  'stop': {'command': ['quit']},
-  'pause': {'command': ['cycle', 'pause']},
-  'next': {'command': ['playlist_next']},
-  'volume-up': {'command': ['add', 'volume', 5]},
-  'volume-down': {'command': ['add', 'volume', -5]},
-  'get-title': {'command': ['get_property', 'media-title']}
+  'stop': ['stop'],
+  'pause': ['cycle', 'pause'],
+  'next': ['playlist_next'],
+  'volume-up': ['add', 'volume', 5],
+  'volume-down': ['add', 'volume', -5],
+  'get-title': ['get_property', 'media-title']
 };
 
 /**
@@ -38,7 +36,7 @@ function init(socketPath) {
       data.split('\n').forEach(item => {
         if (!item) return;
         item = JSON.parse(item);
-        if (item.hasOwnProperty('data') && nextListeners.length) {
+        if (!item.hasOwnProperty('event') && nextListeners.length) {
           nextListeners.forEach(listener => listener(item));
           clearNextListeners();
         }
@@ -56,12 +54,23 @@ function init(socketPath) {
    * Send a command to mpv
    * @param command String command name
    */
-  function write(command) {
+  function _getPresetCommand(commandString) {
+    return COMMANDS[commandString];
+  }
+  /**
+   * Send a command to mpv
+   * @param command String|Array command name
+   */
+  function write(commandParams) {
     if (!client) return;
-    let commandJson = COMMANDS[command];
-    if (!commandJson) throw new Error('No such command: ' + command);
-    commandJson = JSON.stringify(commandJson) + '\n';
-    client.write(commandJson, 'utf-8');
+    if (typeof commandParams === 'string') {
+      commandParams = _getPresetCommand(commandParams);
+    }
+    if (!commandParams) {
+      throw new TypeError('command arguments missing');
+    }
+    let commandJson = {command: commandParams};
+    client.write(JSON.stringify(commandJson) + '\n', 'utf-8');
     return self;
   }
   /**

@@ -1,25 +1,55 @@
 var socket = require('socket.io-client')();
 var $ = require('npm-zepto');
 var _ = require('underscore');
+var Promise = require('bluebird');
 
 var $url = $('form#main #url');
 var $results = $('form#main .search-results');
 
+function sendAjax(method, url, data) {
+  return new Promise(function(resolve, reject) {
+    $.ajax({
+      type: method,
+      url: url,
+      data: data,
+      contentType: 'application/json',
+      dataType: 'json',
+      success: function(data) {
+        resolve(data);
+      },
+      error: function(xhr, errorType, error) {
+        var err;
+        try {
+          err = JSON.parse(xhr.responseText);
+        } catch (e) {
+          err = xhr.responseText || error;
+        }
+        reject(new Error(err && err.error));
+      }
+    });
+  });
+}
+
+function sendCommand(command, params) {
+  var url = '/api/mpv/' + command;
+  updateStatus(false, 'sending command: ' + url + ', params: ' + params);
+  sendAjax('GET', url, params)
+    .then(function(data) { updateStatus(false, data); })
+    .catch(function(err) { updateStatus(true, err.message); });
+}
+
 function play(url) {
-  console.log('playing url', url);
-  socket.emit('url', url);
+  sendCommand('play', {url: url});
   $results.empty();
 }
 
 $('form#main').on('submit', function() {
-  var url = $('form#main input#url').val();
-  play(url);
   return false;
 });
 
-$('form#main button').not('button[type=submit]').on('click', function() {
+$('form#main button.command').on('click', function() {
   var command = $(this).attr('id');
-  socket.emit('command', command);
+  sendCommand(command);
   return false;
 });
 
@@ -27,16 +57,33 @@ $url.on('focus', function(event) {
   $url[0].select();
 });
 
-$('button#status-show').on('click', () => $status.toggle());
+$('button#status-show').on('click', () => {
+  $status.toggle();
+  var statusEl = $status[0];
+  statusEl.scrollTop = statusEl.scrollHeight - $status.height();
+});
+
+var youtubeIcons = {
+  'youtube#video': 'icon-film',
+  'youtube#playlist': 'icon-file-video',
+  'youtube#channel': 'icon-tv'
+};
+
+var youtubeUrls = {
+  'youtube#video': 'https://youtube.com/watch?v=',
+  'youtube#playlist': 'https://youtube.com/playlist?list=',
+  'youtube#channel': 'https://youtube.com/channel/',
+};
+
+var youtubeIds = {
+  'youtube#video': 'videoId',
+  'youtube#playlist': 'playlistId',
+  'youtube#channelId': 'channelId'
+};
 
 function createIcon(item) {
   var $span = $('<span>');
-  var kind = item.id.kind;
-  var icon = kind === 'youtube#video' ?
-    'icon-film' : kind === 'youtube#playlist' ?
-    'icon-file-video' : kind === 'youtube#channel' ?
-    'icon-tv' : '';
-  $span.addClass(icon);
+  $span.addClass(youtubeIcons[item.id.kind]);
   return $span;
 }
 
@@ -46,13 +93,11 @@ function createLink(item) {
   var $icon = createIcon(item);
   var $span = $('<span>').text(item.snippet.title);
   $a.append($img).append($icon).append($span);
-  if (item.id.kind === 'youtube#video') {
-    $a.attr('href', 'https://youtube.com/watch?v=' + item.id.videoId);
-  } else if (item.id.kind === 'youtube#playlist') {
-    $a.attr('href', 'https://youtube.com/playlist?list=' + item.id.playlistId);
-  } else if (item.id.kind === 'youtube#channel') {
-    $a.attr('href', 'https://youtube.com/channel/' + item.id.channelId);
-  }
+
+  var idProperty = youtubeIds[item.id.kind];
+  var url = youtubeUrls[item.id.kind];
+  if (url && idProperty) $a.attr('href', url + item.id[idProperty]);
+
   $a.on('click', () => {
     var url = $a.attr('href');
     play(url);
@@ -68,12 +113,16 @@ $url.on('input', _.debounce(function() {
     return;
   }
 
-  $.getJSON('/api/youtube/search', {
-    value: $url.val()
-  }, function(data) {
-    $results.empty();
-    data.map(item => $results.append(createLink(item)));
-  });
+  sendAjax('GET', '/api/youtube/search', {value: url})
+    .then(function(data) {
+      $results.empty();
+      data.map(item => $results.append(createLink(item)));
+    })
+    .catch(function(err) {
+      $results.empty();
+      updateStatus(true, err.message);
+    });
+
 }, 300));
 
 var $status = $('div#status');
