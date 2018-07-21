@@ -2,7 +2,7 @@
 let sinon = require('sinon');
 let assert = sinon.assert;
 let expect = require('chai').expect;
-let Youtube = require('app/src/server/youtube');
+let Youtube = require('../../src/server/youtube');
 
 describe('test/server/youtube-test.js', () => {
   let youtubeApi, youtube;

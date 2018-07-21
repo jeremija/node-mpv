@@ -1,7 +1,7 @@
 'use strict';
 let net = require('net');
 let expect = require('chai').expect;
-let mpvSocketConfig = require('app/src/server/mpvSocket.js');
+let mpvSocketConfig = require('../../src/server/mpvSocket.js');
 
 let tmpSocketPath = '/tmp/testSocketPath';
 
