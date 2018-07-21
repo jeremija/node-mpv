@@ -5,7 +5,7 @@ let Promise = require('bluebird');
 
 function BLANK() {}
 
-function init(mpvBinary, mpvSocketPath) {
+function init(mpvBinary, mpvArgs = [], mpvSocketPath) {
   let callback, mpv, mpvSocket;
   function log() {
     console.log.apply(console, arguments);
@@ -83,6 +83,7 @@ function init(mpvBinary, mpvSocketPath) {
 
     let command = mpvBinary;
     let args = [
+      ...mpvArgs,
       '--input-unix-socket',
       mpvSocketPath || '/tmp/mpvsocket',
       '--quiet',

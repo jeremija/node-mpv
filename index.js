@@ -25,7 +25,7 @@ function log() {
 }
 
 let mpvConfig = require('./src/server/mpv.js');
-let mpv = mpvConfig.init(config.mpvBinary, config.mpvSocket)
+let mpv = mpvConfig.init(config.mpvBinary, config.mpvArgs, config.mpvSocket)
   .onEvent((err, event) => {
     if (err) {
       log('event error:', err);
