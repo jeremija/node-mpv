@@ -66,7 +66,7 @@ io.on('connection', function (socket) {
   })
 })
 
-http.listen(process.env.PORT || 3000, function () {
+http.listen(process.env.PORT || 3000, process.env.HOST, function () {
   console.log('listening on http://*:3000')
   console.log('you can use http://localhost:3000')
 })

@@ -1,21 +1,17 @@
 'use strict'
-let Promise = require('bluebird')
+const Bluebird = require('bluebird')
+const YT = require('youtube-node')
 
-function init (youtube) {
-
-  function search (title, results) {
-    return new Promise((resolve, reject) => {
-      youtube.search(title, results || 5, (err, result) => {
-        if (err) {
-          reject(err)
-          return
-        }
-        resolve(result.items)
-      })
-    })
+class YouTube {
+  constructor ({ apiKey }) {
+    let yt = new YT()
+    yt.setKey(apiKey)
+    this.yt = Bluebird.promisifyAll(yt)
   }
-
-  return {search}
+  search ({ title, count = 10 }) {
+    return this.yt.searchAsync(title, count)
+    .then(result => result.items)
+  }
 }
 
-module.exports = init
+module.exports = YouTube

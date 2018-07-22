@@ -1,131 +1,142 @@
 'use strict'
-let childProcess = require('child_process')
-let mpvSocketConfig = require('./mpvSocket.js')
-let Promise = require('bluebird')
+const MpvClient = require('./MpvClient.js')
+const Promise = require('bluebird')
+const childProcess = require('child_process')
+const log = require('./Logger').getLogger('Mpv')
 
-function BLANK () {}
+const COMMAND_STOP = ['stop']
+const COMMAND_PAUSE = ['cycle', 'pause']
+const COMMAND_NEXT = ['playlist_next']
+const COMMAND_VOLUME_UP = ['add', 'volume', 5]
+const COMMAND_VOLUME_DOWN = ['add', 'volume', -5]
+const COMMAND_GET_TITLE = ['get_property', 'media-title']
 
-function init (mpvBinary, mpvArgs = [], mpvSocketPath) {
-  let callback, mpv, mpvSocket
-  function log () {
-    console.log.apply(console, arguments)
+class Mpv {
+  constructor ({
+    mpvBinary = 'mpv',
+    mpvArgs = [],
+    socketPath = '/tmp/mpv.sock'
+  } = {}) {
+    this.mpvBinary = mpvBinary
+    this.mpvArgs = mpvArgs
+    this.socketPath = socketPath
+
+    this.mpvProcess = null
+    this.mpvClient = null
   }
 
-  function onEvent (_callback) {
-    if (_callback) callback = _callback
-    else callback = BLANK
-    return self
-  }
-
-  function stopMpvSocket () {
-    if (!mpvSocket) return
-    mpvSocket.close()
-    mpvSocket = undefined
-  }
-
-  function kill () {
-    if (mpv) {
-      mpv.kill('SIGHUP')
-      mpv = undefined
+  stopMpvSocket () {
+    if (!this.mpvClient) {
+      return
     }
-    stopMpvSocket()
-    return self
+    this.mpvClient.close()
+    this.mpvClient = null
   }
 
-  function sendCommand (command) {
-    console.log('sending command', command)
-    return new Promise(function (resolve, reject) {
-      if (!mpvSocket) {
-        reject(new Error('No mpvSocket available'))
-        return
-      }
-      try {
-        mpvSocket.addNextListener(resolve).write(command)
-      } catch (err) {
-        mpvSocket.clearNextListeners()
-        reject(err)
-      }
-    })
+  kill () {
+    if (this.mpvProcess) {
+      this.mpvProcess.kill('SIGHUP')
+      this.mpvProcess = null
+    }
+    this.stopMpvSocket()
+    return this
   }
 
-  function play (url) {
-    if (!mpv) spawn()
-    return sendCommand(['loadfile', url])
+  async sendCommand (command) {
+    log('sending command', command)
+    await this.mpvClient.writeAndRead(command)
   }
 
-  function pause () {
-    if (!mpv) spawn()
-    return sendCommand('pause')
+  async play (url) {
+    this.maybeSpawn()
+    return this.sendCommand(['loadfile', url])
   }
 
-  function stop () {
-    if (!mpv) spawn()
-    return sendCommand('stop')
+  async pause () {
+    this.maybeSpawn()
+    return this.sendCommand(COMMAND_PAUSE)
   }
 
-  function next () {
-    if (!mpv) spawn()
-    return sendCommand('next')
+  async stop () {
+    this.maybeSpawn()
+    return this.sendCommand(COMMAND_STOP)
   }
 
-  function volumeUp () {
-    if (!mpv) spawn()
-    return sendCommand('volume-up')
+  async next () {
+    this.maybeSpawn()
+    return this.sendCommand(COMMAND_NEXT)
   }
 
-  function volumeDown () {
-    if (!mpv) spawn()
-    return sendCommand('volume-down')
+  async volumeUp () {
+    this.maybeSpawn()
+    return this.sendCommand(COMMAND_VOLUME_UP)
   }
 
-  function spawn () {
-    if (mpv) throw new Error('Already spawned!')
+  async volumeDown () {
+    this.maybeSpawn()
+    return this.sendCommand(COMMAND_VOLUME_DOWN)
+  }
 
-    let command = mpvBinary
-    let args = [
+  async maybeSpawn () {
+    if (!this.mpvProcess) {
+      return this.spawn()
+    }
+  }
+
+  async getTitle () {
+    return this.sendCommand(COMMAND_GET_TITLE)
+  }
+
+  async spawn () {
+    if (this.mpvProcess) {
+      throw new Error('Mpv already running!')
+    }
+
+    const {
+      mpvBinary,
+      mpvArgs,
+      socketPath
+    } = this
+
+    const args = [
       ...mpvArgs,
       '--input-unix-socket',
-      mpvSocketPath || '/tmp/mpvsocket',
+      socketPath || '/tmp/mpvsocket',
       '--quiet',
       '--idle',
       './blank.wav'
     ]
 
     log('starting mpv instance...')
-    log('command:', command, args.join(' '))
+    log('command:', mpvBinary, args.join(' '))
 
-    mpv = childProcess.spawn(command, args, {})
+    const mpvProcess = this.mpvProcess = childProcess.spawn(mpvBinary, args)
 
     // mpv.stdin.setEncoding('utf-8');
 
-    mpv.stdout.once('data', data => {
-      if (mpvSocket) mpvSocket.close()
-      mpvSocket = mpvSocketConfig.init(mpvSocketPath)
-      .connect(callback, false)
+    await new Promise((resolve, reject) => {
+      mpvProcess.stdout.once('data', data => {
+        resolve()
+      })
+
+      mpvProcess.once('error', err => {
+        log('An error occurred while starting mpv: ' + err.message)
+        reject(err)
+      })
+
+      mpvProcess.once('close', function (code) {
+        log('mpv exited with code ' + code)
+        this.mpvProcess = null
+        this.stopMpvSocket()
+      })
     })
 
-    mpv.on('close', function (code) {
-      log('mpv exited with code ' + code)
-      mpv = undefined
-      stopMpvSocket()
-    })
-
-    return self
+    if (this.mpvClient) {
+      this.mpvClient.close()
+    }
+    this.mpvClient = new MpvClient({ socketPath })
+    return this.mpvClient.connect()
   }
-
-  let self = {
-    spawn,
-    kill,
-    onEvent,
-    play,
-    pause,
-    stop,
-    next,
-    volumeUp,
-    volumeDown,
-    sendCommand
-  }
-  return self
 }
 
-module.exports = {init}
+module.exports = Mpv
