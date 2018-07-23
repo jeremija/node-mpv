@@ -3,7 +3,10 @@ const log = require('./Logger').getLogger('ServerSocket')
 class ServerSocket {
   constructor ({ socket, mpv }) {
     this.mpv = mpv
-    socket.on('url', this.handleUrl.bind(this))
+
+    this.handleUrl = this.handleUrl.bind(this)
+
+    socket.on('url', this.handleUrl)
   }
   handleUrl (url) {
     const { mpv } = this

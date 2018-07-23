@@ -41,7 +41,7 @@ const mpv = mpvConfig.init(config.mpvBinary, config.mpvArgs, config.mpvSocket)
     })
   }
 }).spawn()
-app.set('views', './src/views')
+app.set('views', path.join(__dirname, '..', 'views'))
 app.set('view engine', 'pug')
 
 app.get('/', function (req, res) {

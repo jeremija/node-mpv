@@ -1,6 +1,7 @@
 'use strict'
 const EventEmitter = require('events')
-const helpers = require('./helpers.js')
+// const log = require('./Logger').getLogger('jukebox:MpvClient')
+const CausedError = require('./CausedError')
 const net = require('net')
 
 class MpvClient extends EventEmitter {
@@ -25,22 +26,19 @@ class MpvClient extends EventEmitter {
     await new Promise((resolve, reject) => {
       this.client = net.createConnection(this.socketPath)
 
-      function onData (data) {
+      const onData = data => {
         resolve()
         this.client.removeListener('error', onError)
-        data = helpers.ab2str(data)
-        if (!data) return
-        data.split('\n').forEach(item => {
-          if (!item) return
-          item = JSON.parse(item)
-          this.emit('event', item)
+        data = data.toString('utf8')
+        data.trim().split('\n').forEach(event => {
+          event = JSON.parse(event)
+          this.emit('event', event)
         })
       }
 
-      function onError (err) {
+      const onError = err => {
         reject(err)
         this.client.removeListener('data', onData)
-        this.emit('error', err)
       }
 
       this.client.on('data', onData)
@@ -53,45 +51,66 @@ class MpvClient extends EventEmitter {
     await new Promise((resolve, reject) => {
       this.client.write(json + '\n', 'utf-8', err => {
         if (err) {
-          reject(err)
+          // will be handled by error listener. if we reject the promise here
+          // and remove the error listener, the error event will still be
+          // emitted and halt the node process...
           return
         }
+        this.client.removeListener('error', onError)
         resolve()
       })
+
+      const onError = err => {
+        reject(new CausedError('Error writing message: ' + json, err))
+      }
+      this.client.once('error', onError)
     })
   }
 
   async writeAndRead (command) {
     const promise = new Promise((resolve, reject) => {
-      function onEvent (item) {
-        this.removeListener('error', onError)
-        resolve(item)
-      }
-      function onError (err) {
-        this.removeListener('event', onEvent)
-        reject(err)
+      function onEvent (event) {
+        if (event.error !== 'success') {
+          reject(
+            new Error('Command rejected with error: ' + event.error)
+          )
+          return
+        }
+        resolve(event)
       }
       this.once('event', onEvent)
-      this.once('error', onError)
     })
 
     await this.write(command)
-    await promise
+    return promise
   }
 
   /**
-   * Closes the connection and deactivates potential timeout
+   * Closes the connection
    */
-  close () {
+  async close () {
     const { client } = this
-    this.removeAllListeners()
     if (!client) {
       return
     }
+
+    const promise = new Promise((resolve, reject) => {
+      client.once('close', () => {
+        client.removeAllListeners()
+        this.client = undefined
+        resolve()
+      })
+
+      client.once('error', err => {
+        client.removeAllListeners()
+        this.client = undefined
+        reject(err)
+      })
+    })
     client.end()
     client.destroy()
-    this.client = undefined
-    return this
+
+    await promise
   }
 }
 
