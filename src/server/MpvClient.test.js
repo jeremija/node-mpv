@@ -1,36 +1,39 @@
+jest.mock('debug')
 const MpvClient = require('./MpvClient')
+const log = require('./Logger').getLogger(__filename)
+const fs = require('fs')
 const net = require('net')
 const os = require('os')
 const path = require('path')
-// const fs = require('fs')
+
+jest.setTimeout(500)
 
 describe('MpvClient', () => {
 
-  const wrapDone = done => err => {
-    if (err) done.fail(err)
-    else done()
-  }
-
-  // let lastLog = Date.now()
-  // const log = (...params) => {
-  //   const now = Date.now()
-  //   fs.appendFileSync('./test.log', params.join(' ') +
-  //     ' [' + (now - lastLog) + 'ms]\n')
-  //   lastLog = now
-  // }
-
   const dir = os.tmpdir()
   const socketPath = path.join(dir, 'test.sock')
+  beforeAll(done => {
+    fs.unlink(socketPath, callback => done())
+  })
+
   let server
   beforeEach(done => {
     server = net.createServer()
-    server.listen(socketPath, wrapDone(done))
+    server.listen(socketPath, done)
   })
 
   afterEach(done => {
     if (server.listening) {
-      server.close(wrapDone(done))
+      log('afterEach server.close()')
+      server.close(done)
     }
+  })
+
+  describe('constructor', () => {
+    it('sets default socketPath to /tmp/mpv.sock', () => {
+      const client = new MpvClient()
+      expect(client.socketPath).toEqual('/tmp/mpv.sock')
+    })
   })
 
   describe('connect', () => {
@@ -38,10 +41,11 @@ describe('MpvClient', () => {
     const greeting = { a: 'b' }
     let client
     afterEach(async () => {
+      log('afterEach client.close()')
       await client.close()
     })
 
-    function sendGreeting (socket, callback) {
+    function sendGreeting (socket) {
       // TODO not sure if mpv always greets the client first
       socket.write(JSON.stringify(greeting) + '\n')
     }
@@ -141,12 +145,62 @@ describe('MpvClient', () => {
         expect(result).toEqual({ message: 'pong', error: 'success' })
       })
 
+      it('rejects the promise when error !== success in response', async () => {
+        const data = { message: 'ping' }
+        server.on('connection', s => {
+          sendGreeting(s)
+          s.once('data', async data => {
+            data = JSON.parse(data.toString('utf8').trim())
+            s.write(JSON.stringify({ error: 'some kind of failure' }) + '\n')
+          })
+        })
+        await client.connect()
+        let error
+        try {
+          await client.writeAndRead(data)
+        } catch (err) {
+          error = err
+        }
+        expect(error).toBeTruthy()
+        expect(error.message).toMatch(/some kind of failure/)
+      })
+
+      it('handles an error which occurrs when waiting for event', async () => {
+        const data = { message: 'ping' }
+        server.on('connection', s => {
+          sendGreeting(s)
+          s.on('data', value => {
+            s.end()
+            s.destroy()
+          })
+        })
+        client = new MpvClient({ socketPath })
+        await client.connect()
+        let error
+        try {
+          await client.writeAndRead(data)
+        } catch (err) {
+          error = err
+        }
+        expect(error).toBeTruthy()
+        expect(error.message).toMatch(/closed while waiting for response/)
+      })
     })
 
-  })
+    describe('close', () => {
+      it('does not fail when connection not open', async () => {
+        client = new MpvClient({ socketPath })
+        await client.close()
+      })
 
-  describe('close', () => {
+      it('closes the socket connection', async () => {
+        server.on('connection', sendGreeting)
+        client = new MpvClient({ socketPath })
+        await client.connect()
+        await client.close()
+      })
 
+    })
   })
 
 })
