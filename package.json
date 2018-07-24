@@ -92,5 +92,11 @@
       "transform-object-rest-spread",
       "transform-class-properties"
     ]
+  },
+  "jest": {
+    "transformIgnorePatterns": [
+      "<rootDir>/node_modules/",
+      "<rootDir>/src/server/"
+    ]
   }
 }
