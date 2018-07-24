@@ -6,6 +6,7 @@ const net = require('net')
 const os = require('os')
 const path = require('path')
 
+jest.useRealTimers()
 jest.setTimeout(500)
 
 describe('MpvClient', () => {
@@ -75,6 +76,21 @@ describe('MpvClient', () => {
       }
       expect(error).toBeTruthy()
       expect(error.message).toMatch(/ENOENT/)
+    })
+
+    it('times out after a while', async () => {
+      client = new MpvClient({ socketPath, timeout: 0 })
+      let error
+      try {
+        log('connecting')
+        await client.connect()
+      } catch (err) {
+        log('error', err)
+        error = err
+      }
+      expect(error).toBeTruthy()
+      expect(error.message)
+      .toEqual('The operation "connect" timed out after 0ms')
     })
 
     describe('write', () => {
