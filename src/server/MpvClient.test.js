@@ -39,30 +39,15 @@ describe('MpvClient', () => {
 
   describe('connect', () => {
 
-    const greeting = { a: 'b' }
     let client
     afterEach(async () => {
       log('afterEach client.close()')
       await client.close()
     })
 
-    function sendGreeting (socket) {
-      // TODO not sure if mpv always greets the client first
-      socket.write(JSON.stringify(greeting) + '\n')
-    }
-
     it('connects to the socket and emits data', async () => {
       client = new MpvClient({ socketPath })
-      server.on('connection', s => {
-        sendGreeting(s)
-      })
-      const promise = new Promise((resolve, reject) => {
-        client.once('event', resolve)
-        client.once('error', reject)
-      })
       await client.connect()
-      const result = await promise
-      expect(result).toEqual(greeting)
     })
 
     it('rejects the promise on error', async () => {
@@ -83,7 +68,10 @@ describe('MpvClient', () => {
       let error
       try {
         log('connecting')
-        await client.connect()
+        const promise = client.connect()
+        // hack to remove the connect event listener. simulates a timeout
+        client.client.removeAllListeners('connect')
+        await promise
       } catch (err) {
         log('error', err)
         error = err
@@ -102,7 +90,6 @@ describe('MpvClient', () => {
         const data = { test: 'value' }
         const promise = new Promise((resolve, reject) => {
           server.on('connection', s => {
-            sendGreeting(s)
             s.once('data', resolve)
             s.once('error', reject)
           })
@@ -118,7 +105,6 @@ describe('MpvClient', () => {
         // close server on first connection
         const promise = new Promise(resolve => {
           server.on('connection', s => {
-            sendGreeting(s)
             s.end()
             s.destroy()
             resolve()
@@ -147,7 +133,6 @@ describe('MpvClient', () => {
       it('sends data to server and reads immediatelly', async () => {
         const data = { message: 'ping' }
         server.on('connection', s => {
-          sendGreeting(s)
           s.once('data', async data => {
             data = JSON.parse(data.toString('utf8').trim())
             s.write(JSON.stringify({
@@ -164,7 +149,6 @@ describe('MpvClient', () => {
       it('rejects the promise when error !== success in response', async () => {
         const data = { message: 'ping' }
         server.on('connection', s => {
-          sendGreeting(s)
           s.once('data', async data => {
             data = JSON.parse(data.toString('utf8').trim())
             s.write(JSON.stringify({ error: 'some kind of failure' }) + '\n')
@@ -184,7 +168,6 @@ describe('MpvClient', () => {
       it('handles an error which occurrs when waiting for event', async () => {
         const data = { message: 'ping' }
         server.on('connection', s => {
-          sendGreeting(s)
           s.on('data', value => {
             s.end()
             s.destroy()
@@ -210,7 +193,6 @@ describe('MpvClient', () => {
       })
 
       it('closes the socket connection', async () => {
-        server.on('connection', sendGreeting)
         client = new MpvClient({ socketPath })
         await client.connect()
         await client.close()

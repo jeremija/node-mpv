@@ -37,10 +37,15 @@ class MpvClient extends EventEmitter {
     const promise = new Promise((resolve, reject) => {
       this.client = net.createConnection(this.socketPath)
 
-      const onData = data => {
-        log('connect() received initial data, resolving promise!')
+      const onConnect = () => {
+        log('connect() connection established')
         this.client.removeListener('error', onError)
         resolve()
+        this.emit('connect')
+      }
+
+      const onData = data => {
+        log('connect() received data')
         data = data.toString('utf8')
         data.trim().split('\n').forEach(event => {
           event = JSON.parse(event)
@@ -49,6 +54,7 @@ class MpvClient extends EventEmitter {
       }
 
       const onError = err => {
+        this.client.removeListener('connect', onConnect)
         this.client.removeListener('data', onData)
         log('connect() error: %s', err.stack)
         reject(err)
@@ -59,6 +65,7 @@ class MpvClient extends EventEmitter {
       }
 
       log('connect() adding handlers')
+      this.client.once('connect', onConnect)
       this.client.on('error', this._handleError)
       this.client.on('data', onData)
       this.client.once('error', onError)
