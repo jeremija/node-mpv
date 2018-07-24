@@ -1,11 +1,9 @@
 'use strict'
 const CausedError = require('./CausedError')
 const EventEmitter = require('events')
-const Timeout = require('./Timeout')
 const log = require('./Logger').getLogger(__filename)
 const net = require('net')
-
-const noop = () => {}
+const { PromiseTimeout } = require('./Timeout')
 
 class MpvClient extends EventEmitter {
   /**
@@ -19,28 +17,12 @@ class MpvClient extends EventEmitter {
   } = {}) {
     super()
     this.socketPath = socketPath
-    this.timeout = timeout
+    this.promiseTimeout = new PromiseTimeout(timeout)
     this.client = null
     this.error = null
 
     this._handleError = this._handleError.bind(this)
     this._handleClose = this._handleClose.bind(this)
-  }
-
-  async _withTimeout (operation, promise, cleanup = noop) {
-    try {
-      return await Promise.race([
-        promise,
-        Timeout.createTimeout(this.timeout, operation)
-      ])
-    } catch (err) {
-      log('_withTimeout() error')
-      if (err instanceof Timeout.TimeoutError) {
-        log('_withTimeout() A timeout error occurred: %s', err.stack)
-        await cleanup()
-      }
-      throw err
-    }
   }
 
   /**
@@ -87,7 +69,10 @@ class MpvClient extends EventEmitter {
     // because it will still have the main error and close listeners attached.
     // But if the error listener is removed, it might break the whole
     // application in case something happens afterwards.
-    return this._withTimeout('connect', promise, cleanup)
+    return this.promiseTimeout.handle(promise, {
+      action: 'connect',
+      cleanup
+    })
   }
 
   async write (command) {
@@ -119,7 +104,10 @@ class MpvClient extends EventEmitter {
       this.client.once('error', onError)
     })
 
-    await this._withTimeout('write', promise, cleanup)
+    await this.promiseTimeout.handle(promise, {
+      action: 'write',
+      cleanup
+    })
   }
 
   async writeAndRead (command) {
@@ -146,7 +134,10 @@ class MpvClient extends EventEmitter {
     })
 
     await this.write(command)
-    return this._withTimeout('writeAndRead', promise, cleanup)
+    return this.promiseTimeout.handle(promise, {
+      action: 'writeAndRead',
+      cleanup
+    })
   }
 
   _handleError (err) {
@@ -183,7 +174,7 @@ class MpvClient extends EventEmitter {
     client.end()
     client.destroy()
 
-    await this._withTimeout('close', promise)
+    await this.promiseTimeout.handle(promise, { action: 'close' })
   }
 }
 

@@ -90,7 +90,7 @@ describe('MpvClient', () => {
       }
       expect(error).toBeTruthy()
       expect(error.message)
-      .toEqual('The operation "connect" timed out after 0ms')
+      .toEqual('The action "connect" timed out after 0ms')
     })
 
     describe('write', () => {
