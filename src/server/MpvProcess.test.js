@@ -103,7 +103,7 @@ describe('MpvProcess', () => {
     it('emits event by name if property is there', done => {
       const event = {event: 'test', error: 'success'}
       mpv = new MpvProcess()
-      mpv.on('test', e => {
+      mpv.events.on('test', e => {
         expect(e).toEqual(event)
         done()
       })

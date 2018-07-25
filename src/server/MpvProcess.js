@@ -24,6 +24,7 @@ class MpvProcess extends EventEmitter {
     this.args = args
     this.socketPath = socketPath
     this.promiseTimeout = new PromiseTimeout(timeout)
+    this.events = new EventEmitter()
 
     this.mpvProcess = null
     this.mpvClient = null
@@ -61,7 +62,8 @@ class MpvProcess extends EventEmitter {
   _handleEvent (event) {
     this.emit('event', event)
     if (event.event) {
-      this.emit(event.event, event)
+      this.events.emit('*', event)
+      this.events.emit(event.event, event)
     }
   }
 
